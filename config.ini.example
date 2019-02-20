@@ -1,0 +1,8 @@
+[main]
+verbose=DEBUG
+[selenium]
+delay=5
+jar=selenium-server-standalone-3.141.59.jar
+[hh]
+username=
+password=
