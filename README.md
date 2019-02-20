@@ -1,4 +1,4 @@
-Simple code to update your persistence on various platforms. Basicly developed for learning.
+Simple code to update your presence on various platforms. Basicly developed for learning.
 
 Exeternal dependencies:
 
