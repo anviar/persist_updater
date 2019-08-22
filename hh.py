@@ -1,4 +1,6 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
 from selenium.webdriver import Chrome, chrome
 import pickle
 from pathlib import Path
@@ -34,7 +36,7 @@ sleep(config['selenium'].getint('delay'))
 
 options = chrome.options.Options()
 options.add_argument("headless")
-options.add_argument("disable-gpu")
+# options.add_argument("disable-gpu")
 options.add_argument("no-sandbox")
 browser = Chrome(options=options)
 browser.set_window_size(1920, 1080)
@@ -43,27 +45,42 @@ browser.get('https://hh.ru/404')
 if cookies_file_path.exists():
     with open(cookies_file_path, 'rb') as cookies_file:
         for cookie in pickle.load(cookies_file):
-            browser.add_cookie(cookie)
+            try:
+                if isinstance(cookie.get('expiry'), float):
+                    cookie.update({'expiry': int(cookie['expiry'])})
+                browser.add_cookie(cookie)
+            except Exception:
+                logging.exception(cookie)
+                exit(1)
 browser.get('https://hh.ru/applicant/resumes')
-if len(browser.find_elements_by_class_name('resumelist__resume')) == 0:
+if len(browser.find_elements_by_class_name('applicant-resumes-update')) == 0:
     logging.warning('resume list not found, trying to auth')
-    login_form = browser.find_elements_by_xpath('//form[@data-qa="account-login-form"]')[1]
+    login_form_s = browser.find_elements_by_xpath('//form[@data-qa="account-login-form"]')
+    if len(login_form_s) == 0:
+        logging.error('Can not find login form')
+        with open('page.html', 'w', encoding='utf-8') as page_dump:
+            page_dump.write(browser.page_source)
+        exit(1)
+    logging.info(login_form_s)
+    login_form = login_form_s[0]
     login_form.find_element_by_name('username').send_keys(config['hh']['username'])
     login_form.find_element_by_name('password').send_keys(config['hh']['password'])
     login_form.find_element_by_xpath('.//input[@data-qa="account-login-submit"]').click()
     browser.get('https://hh.ru/applicant/resumes')
+else:
+    logging.debug('Resume list found')
 resumes = browser.find_elements_by_xpath('.//div[@data-qa="resume "]')
 for res in resumes:
-    title = res.find_element_by_xpath('.//span[@data-qa="resume-title"]').text
+    title = res.find_element_by_xpath('.//span[@data-qa="resume-title"]').text.encode('utf-8')
     refresh_button = res.find_elements_by_class_name('bloko-icon-link')
     if len(refresh_button) == 1 and refresh_button[0].is_enabled():
         try:
             refresh_button[0].click()
-            logging.info("Updated: {}".format(title))
+            logging.info(f"<{title}> Updated")
         except Exception as e:
             print(e)
     else:
-        logging.debug("Already up to date: {}".format(title))
+        logging.info(f"<{title}> Already up to date")
 with open(cookies_file_path, 'wb') as cookies_file:
     pickle.dump(browser.get_cookies(), cookies_file)
 browser.close()
