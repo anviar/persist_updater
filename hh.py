@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from selenium.webdriver import Chrome, chrome
+from selenium.common.exceptions import ElementClickInterceptedException
 import pickle
 from pathlib import Path
 from configparser import ConfigParser
@@ -72,15 +73,15 @@ else:
 resumes = browser.find_elements_by_xpath('.//div[@data-qa="resume "]')
 for res in resumes:
     title = res.find_element_by_xpath('.//span[@data-qa="resume-title"]').text.encode('utf-8')
-    refresh_button = res.find_elements_by_class_name('bloko-icon-link')
-    if len(refresh_button) == 1 and refresh_button[0].is_enabled():
+    refresh_button = res.find_element_by_xpath('.//button[@data-qa="resume-update-button"]')
+    if refresh_button:
         try:
-            refresh_button[0].click()
+            refresh_button.click()
             logging.info(f"<{title}> Updated")
-        except Exception as e:
-            print(e)
+        except ElementClickInterceptedException:
+            logging.exception(f'<{title}> Can not click the update button')
     else:
-        logging.info(f"<{title}> Already up to date")
+        logging.info(f"<{title}> refresh button not found")
 with open(cookies_file_path, 'wb') as cookies_file:
     pickle.dump(browser.get_cookies(), cookies_file)
 browser.close()
