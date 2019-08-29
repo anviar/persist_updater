@@ -36,7 +36,7 @@ with open(workdir / 'selenium.log', 'wt') as log:
 sleep(config['selenium'].getint('delay'))
 
 options = chrome.options.Options()
-options.add_argument("headless")
+# options.add_argument("headless")
 # options.add_argument("disable-gpu")
 options.add_argument("no-sandbox")
 browser = Chrome(options=options)
@@ -74,16 +74,19 @@ resumes = browser.find_elements_by_xpath('.//div[@data-qa="resume "]')
 for res in resumes:
     title = res.find_element_by_xpath('.//span[@data-qa="resume-title"]').text.encode('utf-8')
     refresh_button = res.find_element_by_xpath('.//button[@data-qa="resume-update-button"]')
+    logging.info(refresh_button.text)
     if refresh_button:
         try:
             refresh_button.click()
-            logging.info(f"<{title}> Updated")
         except ElementClickInterceptedException:
             logging.exception(f'<{title}> Can not click the update button')
+        else:
+            logging.info(f"<{title}> Updated")
     else:
         logging.info(f"<{title}> refresh button not found")
 with open(cookies_file_path, 'wb') as cookies_file:
     pickle.dump(browser.get_cookies(), cookies_file)
+
 browser.close()
 browser.quit()
 selenium_process.terminate()
